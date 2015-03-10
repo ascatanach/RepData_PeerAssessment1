@@ -5,12 +5,23 @@ output:
     keep_md: true
 ---
 
+library(dplyr)
+library(data.table)
+
 
 ## Loading and preprocessing the data
-
+setwd("H:/Coursera/Reproducible_Research/Assignment1/RepData_PeerAssessment1")
+data <- read.table(unz("activity.zip", "activity.csv"), header=T, quote="\"", sep=",")
+head(data)
 
 
 ## What is mean total number of steps taken per day?
+data %>%
+group_by(date) %>%
+summarise(total_steps = sum(steps))
+ggplot()
+
+summarise(mean_total_steps = mean(steps, na.rm = TRUE))
 
 
 
