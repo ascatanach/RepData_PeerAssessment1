@@ -7,6 +7,7 @@ output:
 
 library(dplyr)
 library(data.table)
+library(ggplot2)
 
 
 ## Loading and preprocessing the data
@@ -18,19 +19,92 @@ head(data)
 ## What is mean total number of steps taken per day?
 data %>%
 group_by(date) %>%
-summarise(total_steps = sum(steps))
-ggplot()
+summarise(total_steps = sum(steps)) %>%
+ggplot(data = ., aes(x=date, y=total_steps)) + 
+geom_histogram(stat = "identity") +
+ggtitle("Total steps taken each day") +
+xlab("Date") +
+ylab("Total Steps") +
+theme(axis.text.x = element_text(angle = 90, size = 10))
 
+means <- data %>%
+group_by(date) %>%
 summarise(mean_total_steps = mean(steps, na.rm = TRUE))
 
+medians <- data %>%
+group_by(date) %>%
+summarise(median_total_steps = median(steps, na.rm = TRUE))
 
 
 ## What is the average daily activity pattern?
 
+d <- data %>%
+group_by(interval) %>%
+summarise(mean_steps_per_interval = mean(steps, na.rm = TRUE))
+
+plot(d, type = "l", main = "Mean step number per daily interval", xlab = "Interval", ylab = "Mean number of steps")
+
+d[which.max(d$mean_steps_per_interval), 1]
 
 
 ## Imputing missing values
+sum(is.na(data$steps))
+
+#using data from mean for interval as some dates are completely NA
+d <- data %>%
+group_by(interval) %>%
+summarise(mean_steps_per_interval = mean(steps, na.rm = TRUE))
+
+new_data <- data
+for(i in 1:nrow(new_data))
+{
+        if(is.na(new_data[i, 1]))
+        {
+        interval <- new_data[i, 3]
+        new_data [i, 1] <- d[d$interval == interval, 2]
+        }
+}
+
+means_new <- new_data %>%
+group_by(date) %>%
+summarise(mean_total_steps_new = mean(steps, na.rm = TRUE))
+
+medians_new <- new_data %>%
+group_by(date) %>%
+summarise(median_total_steps_new = median(steps, na.rm = TRUE))
+
+new_data %>%
+group_by(date) %>%
+summarise(total_steps = sum(steps)) %>%
+ggplot(data = ., aes(x=date, y=total_steps)) + 
+geom_histogram(stat = "identity") +
+ggtitle("Total steps taken each day") +
+xlab("Date") +
+ylab("Total Steps") +
+theme(axis.text.x = element_text(angle = 90, size = 10))
+
+differences_betw_means <- merge(means, means_new, by = "date") %>%
+group_by(date, mean_total_steps, mean_total_steps_new) %>%
+summarise(differences = mean_total_steps - mean_total_steps_new)
+
+#The only differences are for days which had NAs for all their intervals. No days had NAs for only some of their intervals so no differences were seen on days for which there was previously data.
 
 
 
 ## Are there differences in activity patterns between weekdays and weekends?
+new_data_day <- new_data
+
+new_data_day$day <- as.POSIXlt(new_data_day$date)$wday
+for(i in 1:nrow(new_data_day))
+{
+       if(new_data_day[i,4] == 0 | new_data_day[i,4] == 6)
+        {
+        new_data_day[i,4] <- "Weekend"
+        }
+        else
+        {
+        new_data_day[i,4] <- "Weekday"
+        }
+}
+
+
