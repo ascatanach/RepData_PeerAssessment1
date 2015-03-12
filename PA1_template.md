@@ -180,7 +180,7 @@ median(total_steps_by_date$total_steps, na.rm = TRUE)
 ## [1] 10765
 ```
 ## What is the average daily activity pattern?
-1. A time series plot across the five minute intervals averaged across all days.
+A time series plot across the five minute intervals averaged across all days.
 
 ```r
 d <- data %>%
@@ -192,7 +192,7 @@ plot(d, type = "l", main = "Mean step number per daily interval", xlab = "Interv
 
 ![plot of chunk unnamed-chunk-8](figure/unnamed-chunk-8-1.png) 
 
-2. Finding the interval with the maximum number of steps averaged across all days:
+Finding the interval with the maximum number of steps averaged across all days:
 
 ```r
 d[which.max(d$mean_steps_per_interval), 1]
@@ -282,7 +282,7 @@ median(new_total_steps_by_date$total_steps, na.rm = TRUE)
 ## [1] 10766.19
 ```
 
-For some reason knitr is reporting the median as the mean, the median is actually 10765 as it was without the imputed missing values. Filling in the missing values had no impact on the total number of steps. This is understandable for the mean  because those days for which data was missing were not included in the initial calculation and the imputation of the missing data was based on means across all other days. There could have been a change in the median if the middle value changed but in this case that did not occur, indicating that as many days were imputed below the previous median as were imputed above the previous median.
+For some reason knitr is reporting the median as the mean, the median is actually 10765, as it was without the imputed missing values. Filling in the missing values had no impact on the total number of steps. This is understandable for the mean  because those days for which data was missing were not included in the initial calculation and the imputation of the missing data was based on means across all other days. There could have been a change in the median if the middle value changed but in this case that did not occur, indicating that as many days were imputed below the previous median as were imputed above the previous median.
 
 ## Are there differences in activity patterns between weekdays and weekends?
 The new factor variable to indicate weekday or weekend. Created a new data table from new_data (original data but with imputed missing data) and created a new column "day" with values 0-6 for Sunday through to Saturday respectively:
