@@ -5,18 +5,35 @@ output:
     keep_md: true
 ---
 
+Assignment to answer questions about step data forked from https://github.com/rdpeng/RepData_PeerAssessment1 to new repo at https://github.com/ascatanach/RepData_PeerAssessment1.
+
+For the code I tended to use chaining for ease.
+
+Using the following libraries:
+
+```{r}
 library(dplyr)
 library(data.table)
 library(ggplot2)
+```
 
 
 ## Loading and preprocessing the data
+Data was cloned using git, unzipped and loaded into object called data. Used read.table instead of read.csv, end result is the same:
+```{r}
 setwd("H:/Coursera/Reproducible_Research/Assignment1/RepData_PeerAssessment1")
 data <- read.table(unz("activity.zip", "activity.csv"), header=T, quote="\"", sep=",")
-head(data)
-
+```
 
 ## What is mean total number of steps taken per day?
+Calculating the total number of steps per day
+```{r}
+data %>%
+group_by(date) %>%
+summarise(total_steps = sum(steps))
+```
+Histogram of total number of steps taken each day.
+```{r}
 data %>%
 group_by(date) %>%
 summarise(total_steps = sum(steps)) %>%
@@ -25,36 +42,54 @@ geom_histogram(stat = "identity") +
 ggtitle("Total steps taken each day") +
 xlab("Date") +
 ylab("Total Steps") +
-theme(axis.text.x = element_text(angle = 90, size = 10))
+theme(axis.text.x = element_text(angle = 90, size = 8))
+```
 
-means <- data %>%
+Report of mean and median of total number of steps per day. I am assuming this is asking for one mean and median for total number of steps across all days. Finding total steps by day:
+```{r}
+total_steps_by_date <- data %>%
 group_by(date) %>%
-summarise(mean_total_steps = mean(steps, na.rm = TRUE))
-
-medians <- data %>%
-group_by(date) %>%
-summarise(median_total_steps = median(steps, na.rm = TRUE))
-
-
+summarise(total_steps = sum(steps))
+```
+And taking the mean:
+```{r}
+mean(total_steps_by_date$total_steps, na.rm = TRUE)
+```
+And the median:
+```{r}
+median(total_steps_by_date$total_steps, na.rm = TRUE)
+```
 ## What is the average daily activity pattern?
-
+1. A time series plot across the five minute intervals averaged across all days.
+```{r}
 d <- data %>%
 group_by(interval) %>%
 summarise(mean_steps_per_interval = mean(steps, na.rm = TRUE))
 
 plot(d, type = "l", main = "Mean step number per daily interval", xlab = "Interval", ylab = "Mean number of steps")
+```
 
+2. Finding the interval with the maximum number of steps averaged across all days:
+```{r}
 d[which.max(d$mean_steps_per_interval), 1]
-
+```
 
 ## Imputing missing values
-sum(is.na(data$steps))
+Calculate and report the total number of missing values in the dataset (i.e. the total number of rows with NAs).
 
-#using data from mean for interval as some dates are completely NA
+```{r}
+sum(is.na(data$steps))
+```
+
+The strategy for filling in missing data was using those from the mean of the interval across all other days as some dates are completely NA.
+```{r}
 d <- data %>%
 group_by(interval) %>%
 summarise(mean_steps_per_interval = mean(steps, na.rm = TRUE))
+```
 
+Creating a new dataset with the missing values filled taking the means of intervals found above and replacing as per interval in which the data is missing:
+```{r}
 new_data <- data
 for(i in 1:nrow(new_data))
 {
@@ -64,15 +99,10 @@ for(i in 1:nrow(new_data))
         new_data [i, 1] <- d[d$interval == interval, 2]
         }
 }
+```
 
-means_new <- new_data %>%
-group_by(date) %>%
-summarise(mean_total_steps_new = mean(steps, na.rm = TRUE))
-
-medians_new <- new_data %>%
-group_by(date) %>%
-summarise(median_total_steps_new = median(steps, na.rm = TRUE))
-
+A histogram of the new data ie total steps with missing values filled:
+```{r}
 new_data %>%
 group_by(date) %>%
 summarise(total_steps = sum(steps)) %>%
@@ -81,20 +111,37 @@ geom_histogram(stat = "identity") +
 ggtitle("Total steps taken each day") +
 xlab("Date") +
 ylab("Total Steps") +
-theme(axis.text.x = element_text(angle = 90, size = 10))
+theme(axis.text.x = element_text(angle = 90, size = 8))
+```
 
-differences_betw_means <- merge(means, means_new, by = "date") %>%
-group_by(date, mean_total_steps, mean_total_steps_new) %>%
-summarise(differences = mean_total_steps - mean_total_steps_new)
+The mean and median of the total steps, first calculating the total steps each day
+```{r}
+new_total_steps_by_date <- new_data %>%
+group_by(date) %>%
+summarise(total_steps = sum(steps))
+```
 
-#The only differences are for days which had NAs for all their intervals. No days had NAs for only some of their intervals so no differences were seen on days for which there was previously data.
+And the mean:
+```{r}
+mean(new_total_steps_by_date$total_steps, na.rm = TRUE)
+```
+And the median:
+```{r}
+median(new_total_steps_by_date$total_steps, na.rm = TRUE)
+```
 
-
+For some reason knitr is reporting the median as the mean, the median is actually 10765 as it was without the imputed missing values. Filling in the missing values had no impact on the total number of steps. This is understandable for the mean  because those days for which data was missing were not included in the initial calculation and the imputation of the missing data was based on means across all other days. There could have been a change in the median if the middle value changed but in this case that did not occur, indicating that as many days were imputed below the previous median as were imputed above the previous median.
 
 ## Are there differences in activity patterns between weekdays and weekends?
+The new factor variable to indicate weekday or weekend. Created a new data table from new_data (original data but with imputed missing data) and created a new column "day" with values 0-6 for Sunday through to Saturday respectively:
+```{r}
 new_data_day <- new_data
-
 new_data_day$day <- as.POSIXlt(new_data_day$date)$wday
+```
+
+The values of new_data_day$day were converted into Weekend or Weekday accordingly and then changed from a character variable to a factor variable:
+
+```{r}
 for(i in 1:nrow(new_data_day))
 {
        if(new_data_day[i,4] == 0 | new_data_day[i,4] == 6)
@@ -106,5 +153,31 @@ for(i in 1:nrow(new_data_day))
         new_data_day[i,4] <- "Weekday"
         }
 }
+new_data_day$day <- as.factor(new_data_day$day)
+```
 
+To make the plot, first calulated the mean for each interval grouped by day (ie Weekday or Weekend)
+```{r}
+mean_steps_day <- new_data_day %>%
+group_by(day, interval) %>%
+summarise(mean_steps_interval = mean(steps))
+```
+
+Then new dataframes were generated by filtering for day (Weekend or Weekday) and the variables interval and mean_steps_interval were selected (ie variable day removed):
+
+```{r}
+mean_steps_weekday <- filter(mean_steps_day, day == "Weekday")
+mean_steps_weekday <- as.data.frame(mean_steps_weekday)
+mean_steps_weekday <- select(mean_steps_weekday, -day)
+mean_steps_weekend <- filter(mean_steps_day, day == "Weekend")
+mean_steps_weekend <- as.data.frame(mean_steps_weekend)
+mean_steps_weekend <- select(mean_steps_weekend, -day)
+```
+
+And the plots:
+```{r}
+par(mfrow = c(2, 1))
+plot(mean_steps_weekday,  type = "l", main = "Weekday", xlab = "Interval", ylab = "Mean number of steps")
+plot(mean_steps_weekend,  type = "l", main = "Weekend", xlab = "Interval", ylab = "Mean number of steps")
+```
 
